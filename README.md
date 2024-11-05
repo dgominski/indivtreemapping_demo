@@ -24,6 +24,7 @@ Copy the folder in 10.61.69.20/Users/Dimitri/tree_mapping_example_data on your l
 1. Preprocess the rasters and create the frames
 
 => see the README in the preprocess folder
+
 2. Divide the frames into train/val splits. You can do this manually, or use the train_val_split method: modify the hardcoded dataroot in data.template_dataset.py then run `python3 -m data.template_dataset`
 3. Fill in mean and std values for the normalizer in data.template_dataset.py
 4. Train! 
