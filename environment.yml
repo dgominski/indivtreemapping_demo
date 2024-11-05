@@ -1,0 +1,36 @@
+# YAML file for creating an environment
+# conda env create -f environment.yml
+
+name: treemapping
+channels:
+  - pytorch
+  - default
+  - conda-forge
+  - nvidia
+dependencies:
+  - python=3.9
+  - pip
+  - pytorch::pytorch
+  - pytorch-cuda
+  - pytorch::torchvision
+  - pytorch::torchaudio
+  - torchmetrics
+  - conda-forge::opencv
+  - tensorboard
+  - matplotlib
+  - tqdm
+  - seaborn
+  - pandas
+  - gdal
+  - geopandas
+  - shapely
+  - rasterio
+  - pyproj
+  - PyYaml
+  - scikit-image
+  - pip:
+    - pytorch_toolbelt
+    - segmentation_models_pytorch
+    - setuptools==59.5.0
+    - albumentations
+    - ttach
