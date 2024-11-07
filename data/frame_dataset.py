@@ -44,8 +44,16 @@ class FrameDataset(BaseDataset):
                 'weightmap': 'image',}
         )
         self.augmenter = A.Compose([
-            ToTensorV2(),
-        ])
+            A.Downscale(0.5, 0.8, interpolation=cv2.INTER_LINEAR, p=0.2),
+            A.RandomBrightnessContrast(brightness_limit=(-0.18, 0.18), contrast_limit=(-0.2, 0.2), p=0.7),
+            A.RandomContrast(),
+            A.RandomBrightness(),
+            A.MultiplicativeNoise(per_channel=True, elementwise=True, p=0.5),
+            A.GaussNoise(var_limit=(30, 150), p=0.2),
+            A.PixelDropout(p=0.2, dropout_prob=0.02),
+            A.GaussianBlur(p=0.3),
+        ], p=0.5)  ## probability of having any of the above augmentations
+        self.totensor = ToTensorV2()
 
     def __getitem__(self, i):
         frame = self.get_frame(from_memory=self.opt.preload)
@@ -57,9 +65,12 @@ class FrameDataset(BaseDataset):
 
         cropped = self.cropper(image=frame["image"].transpose(1, 2, 0),
                                keypoints=frame["centers"],
-                               valid=frame["valid"],
-                               weightmap=frame["weightmap"])
-        transformed = self.augmenter(image=cropped["image"].astype(np.float32))
+                               weightmap=frame["weightmap"],
+                               valid=frame["valid"])
+        if self.mode == "train":
+            transformed = self.totensor(**self.augmenter(image=cropped["image"]))
+        else:
+            transformed = self.totensor(**cropped)
 
         im = self.normalizer(transformed["image"].float())
 
