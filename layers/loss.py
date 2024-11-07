@@ -8,19 +8,20 @@ from data.data_utils import draw_gaussian_broadcast
 
 
 class AdaptiveHeatmapLossFromCenters(nn.Module):
-    def __init__(self, reference_ground_resolution, pr_min=.2):
+    def __init__(self, reference_ground_resolution, pr_min=.2, gamma=0.1):
         super(AdaptiveHeatmapLossFromCenters, self).__init__()
         self.reference_ground_resolution = reference_ground_resolution  # image-level scale factors (not to be confused with scale predictions) computed as a ratio to this
         self.pr_min = pr_min  # in meters
+        self.gamma = gamma
 
-    def forward(self, pred_hm, pred_sm, centers, ground_resolution, mask=None):
+    def forward(self, pred_hm, pred_sm, weightmap, centers, ground_resolution, mask=None):
         scale_reg_losses = 0
         heatmaps_losses = 0
         scaled_gts = []
         for i in range(pred_hm.shape[0]):
             # scale loss
             scale_pred = pred_sm[i, 0]
-            scale_loss = scale_pred ** 2
+            scale_loss = scale_pred ** 2 * (weightmap[i, 0] > .1)
             scale_reg_losses += scale_loss.mean(dim=1).mean(dim=0)
 
             # heatmap loss
@@ -36,7 +37,8 @@ class AdaptiveHeatmapLossFromCenters(nn.Module):
                 m = mask[i, 0]
             else:
                 m = torch.ones_like(pred_hm[i, 0])
-            heatmaps_loss = (pred_hm[i, 0] - scaled_gt)**2 * m
+            weight = torch.abs(1 - pred_hm[i, 0]) * weightmap[i, 0] ** self.gamma + torch.abs(pred_hm[i, 0]) * (1 - weightmap[i, 0] ** self.gamma)
+            heatmaps_loss = (pred_hm[i, 0] - scaled_gt)**2 * m * weight
 
             heatmaps_losses += heatmaps_loss.mean(dim=1).mean(dim=0)
             scaled_gts.append(scaled_gt)

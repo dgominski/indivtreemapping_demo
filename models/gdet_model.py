@@ -60,6 +60,7 @@ class GDetModel(BaseModel, torch.nn.Module):
         self.visual_input = inputdict.get('rawinput', None).float()
         self.ground_resolution = inputdict.get('resolution', None)
         self.valid = inputdict.get('valid', None).to(torch.float16).to(self.device)
+        self.weightmap = inputdict.get('weightmap', None).to(torch.float16).to(self.device)
         tcs = inputdict.get('centers', None)
         self.target_centers = [np.array(c) if c[0] is not None else np.empty((0, 2)) for c in tcs]
 
@@ -80,7 +81,7 @@ class GDetModel(BaseModel, torch.nn.Module):
 
     def compute_loss(self):
         """Calculate loss"""
-        self.loss_scale_reg, self.loss_heatmap, scaled_target = self.heatmap_criterion(self.heatmap, self.sigmas, self.target_centers, self.ground_resolution, self.valid)
+        self.loss_scale_reg, self.loss_heatmap, scaled_target = self.heatmap_criterion(self.heatmap, self.sigmas, self.weightmap, self.target_centers, self.ground_resolution, self.valid)
         self.scaled_target = torch.clamp(scaled_target, min=0, max=1)
         self.loss_total = self.loss_heatmap + self.opt.delta*self.loss_scale_reg
         if self.loss_total.isnan():

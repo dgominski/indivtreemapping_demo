@@ -10,6 +10,7 @@ import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 import cv2
 import json
+from data.data_utils import draw_gaussian_windowed
 
 
 class FrameDataset(BaseDataset):
@@ -39,7 +40,8 @@ class FrameDataset(BaseDataset):
             A.RandomRotate90(),
         ], keypoint_params=A.KeypointParams(format='yx'),
             additional_targets={
-                'valid': 'image'}
+                'valid': 'image',
+                'weightmap': 'image',}
         )
         self.augmenter = A.Compose([
             ToTensorV2(),
@@ -55,7 +57,8 @@ class FrameDataset(BaseDataset):
 
         cropped = self.cropper(image=frame["image"].transpose(1, 2, 0),
                                keypoints=frame["centers"],
-                               valid=frame["valid"])
+                               valid=frame["valid"],
+                               weightmap=frame["weightmap"])
         transformed = self.augmenter(image=cropped["image"].astype(np.float32))
 
         im = self.normalizer(transformed["image"].float())
@@ -64,6 +67,7 @@ class FrameDataset(BaseDataset):
         sampledict = {}
         sampledict["input"] = im
         sampledict["valid"] = torch.from_numpy(cropped["valid"]).unsqueeze(0)
+        sampledict["weightmap"] = torch.from_numpy(cropped["weightmap"]).unsqueeze(0)
         sampledict["rawinput"] = torch.from_numpy(cropped["image"].transpose(2, 0, 1)[:3]) / 255
         sampledict["centers"] = cropped["keypoints"] if len(cropped["keypoints"]) > 0 else [None]
         sampledict["resolution"] = self.ground_resolution
@@ -86,12 +90,19 @@ class FrameDataset(BaseDataset):
 
         if len(jsondata) == 0:
             centers = None
+            weightmap = np.zeros((image.shape[1], image.shape[2]))
         else:
             # Get centers
             centers = np.array([d["center"] for d in jsondata])[:, [1, 0]]
 
-        return {"image": image,
+            # Draw heatmap from centers
+            centers_to_draw = centers
+            pseudoradiuses_to_draw = centers_to_draw.shape[0] * [self.sigma]
+            weightmap = draw_gaussian_windowed((image.shape[1], image.shape[2]), centers_to_draw.astype(int), sigmas=pseudoradiuses_to_draw)
+
+        return {"image": image.astype(np.uint8),
                 "valid": valid,
+                "weightmap": weightmap,
                 "centers": centers}
 
     def load_data(self):
