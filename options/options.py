@@ -86,8 +86,11 @@ class Options():
         parser.add_argument('--lr-policy', default="linear", type=str, help='learning rate policy. [linear | step | plateau | cosine | exp | poly]')
         # validation parameters
         parser.add_argument('--val-freq', default=5, type=int, help='frequency of running validation step')
+        # testing parameters
+        parser.add_argument('--val-dir', default=None, help='directory with validation frames')
+        parser.add_argument('--test-dir', default=None, help='directory with test frames')
 
-        # testing/prediction parameters
+        # prediction parameters
         parser.add_argument('--target-dir', default=None, help='target directory on which to make predictions (all images in folder)')
         parser.add_argument('--output-dir', default=None, help='output directory for saving predictions')
         parser.add_argument('--only-hm', action='store_true', default=False, help='whether to only save the heatmap (no gpkg)')

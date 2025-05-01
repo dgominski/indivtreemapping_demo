@@ -4,9 +4,37 @@ from scipy.optimize import linear_sum_assignment
 import numpy as np
 
 
+class DictAverager(object):
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.vals = {}
+
+    def update(self, dict):
+        for k in dict:
+            if k not in self.vals:
+                # declare
+                self.vals[k] = []
+            if isinstance(dict[k], int) or isinstance(dict[k], float):
+                self.vals[k].append(dict[k])
+            if isinstance(dict[k], list) or isinstance(dict[k], tuple):
+                self.vals[k].extend(dict[k])
+
+    def get_avg(self):
+        output_dict = {}
+        for k in self.vals:
+            output_dict[k] = np.round(np.nanmean(self.vals[k]), decimals=4)
+        return output_dict
+
+    def get_sum(self):
+        output_dict = {}
+        for k in self.vals:
+            output_dict[k] = np.round(np.nansum(self.vals[k]), decimals=4)
+        return output_dict
+
+
 ## Credits to Ventura et al. https://github.com/jonathanventura/urban-tree-detection
-
-
 def find_matching(gt_indices, pred_indices, max_distance):
     if len(gt_indices) == 0 or len(pred_indices) == 0:
         dists = np.ones((len(gt_indices), len(pred_indices)), dtype='float32') * np.inf
@@ -44,6 +72,7 @@ def find_matching(gt_indices, pred_indices, max_distance):
 
     if dists[:, tp_inds].size > 0:
         tp_dists = np.min(dists[:, tp_inds], axis=0)
+        tp_dists = tp_dists[~np.isinf(tp_dists)]
     else:
         tp_dists = []
 
