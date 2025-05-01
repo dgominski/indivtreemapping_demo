@@ -72,7 +72,6 @@ def find_matching(gt_indices, pred_indices, max_distance):
 
     if dists[:, tp_inds].size > 0:
         tp_dists = np.min(dists[:, tp_inds], axis=0)
-        tp_dists = tp_dists[~np.isinf(tp_dists)]
     else:
         tp_dists = []
 
@@ -189,7 +188,7 @@ def evaluate(gts, preds, min_distance, threshold_rel, threshold_abs, max_distanc
     precision = all_tp / (all_tp + all_fp) if all_tp + all_fp > 0 else 0
     recall = all_tp / (all_tp + all_fn) if all_tp + all_fn > 0 else 0
     fscore = 2 * (precision * recall) / (precision + recall) if precision + recall > 0 else 0
-    rmse = np.sqrt(np.mean(all_tp_dists ** 2)) if len(all_tp_dists) > 0 else np.inf
+    rmse = np.sqrt(np.mean(all_tp_dists ** 2)) if len(all_tp_dists) > 0 else np.nan
 
     results = {
         'precision': precision,
