@@ -109,11 +109,8 @@ class FolderDataset(BaseDataset):
         self.frame_paths = []
         all_frame_paths = sorted(glob.glob(os.path.join(self.frame_dir, "*.npy")))
         for f in all_frame_paths:
-            frame = np.load(f)
-            # only keep frames bigger than imsize
-            if frame.shape[1] >= self.opt.imsize and frame.shape[2] >= self.opt.imsize:
-                self.json_paths.append(os.path.splitext(f)[0] + ".json")
-                self.frame_paths.append(f)
+            self.json_paths.append(os.path.splitext(f)[0] + ".json")
+            self.frame_paths.append(f)
         if len(self.json_paths) != len(self.frame_paths):
             raise ValueError("Frame and json files number not matching !")
         return
