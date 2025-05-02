@@ -103,7 +103,7 @@ if __name__ == '__main__':
     valdataset.load_data()
     testdataset = FolderDataset(opt, root=opt.test_dir, mode='test')
     testdataset.load_data()
-    model = create_model(opt)
+    model = create_model(opt, mode='test')
 
     # find best hyperparameters
     best_val_measures, best_hparams = hparam_sweep(valdataset, model)

@@ -66,7 +66,7 @@ class GDetModel(BaseModel, torch.nn.Module):
 
     def forward(self):
         deepfeats = self.unet_encoder(self.input)
-        feats = self.unet_decoder(*deepfeats)
+        feats = self.unet_decoder(deepfeats)
         self.heatmap = self.heatmap_head(feats)
         self.visual_heatmap = torch.clamp(self.heatmap, min=0, max=1)
         self.sigmas = self.sigma_head(feats)

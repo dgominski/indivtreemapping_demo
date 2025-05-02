@@ -34,6 +34,7 @@ class FolderDataset(BaseDataset):
         if mode == "val":
             # random crop
             self.cropper = A.Compose([
+                A.PadIfNeeded(min_height=opt.imsize, min_width=opt.imsize, border_mode=cv2.BORDER_CONSTANT),
                 A.RandomCrop(width=opt.imsize, height=opt.imsize),
             ], keypoint_params=A.KeypointParams(format='yx'),
                 additional_targets={
