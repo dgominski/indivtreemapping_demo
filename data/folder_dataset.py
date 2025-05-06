@@ -15,6 +15,33 @@ import json
 from data.data_utils import draw_gaussian_windowed
 
 
+def custom_cropper(image, valid, keypoints, imsize):
+    # crop without albumentaions
+    frame = torch.from_numpy(image)
+    valid = torch.from_numpy(valid)
+    keypoints = torch.Tensor(keypoints)
+    # random crop
+    h, w = frame.shape[:2]
+    if h < imsize or w < imsize:
+        raise ValueError("Frame is smaller than imsize")
+    top = np.random.randint(0, h - imsize)
+    left = np.random.randint(0, w - imsize)
+    bottom = top + imsize
+    right = left + imsize
+    frame = frame[top:bottom, left:right, :]
+    valid = valid[top:bottom, left:right]
+    if keypoints.shape[0] == 0:
+        keypoints = np.empty((0, 2))
+    else:
+        keypoints = keypoints - np.array([left, top])
+        keypoints = keypoints[keypoints[:, 0] >= 0]
+        keypoints = keypoints[keypoints[:, 1] >= 0]
+        keypoints = keypoints[keypoints[:, 0] < imsize]
+        keypoints = keypoints[keypoints[:, 1] < imsize]
+    frame = frame.permute(2, 0, 1)
+    return {"image": frame, "valid": valid, "keypoints": keypoints.tolist()}
+
+
 class FolderDataset(BaseDataset):
     """
     Input images band order : [RED, GREEN, BLUE, INFRARED, VALIDITY MASK]
@@ -33,14 +60,16 @@ class FolderDataset(BaseDataset):
 
         if mode == "val":
             # random crop
-            self.cropper = A.Compose([
-                A.PadIfNeeded(min_height=opt.imsize, min_width=opt.imsize, border_mode=cv2.BORDER_CONSTANT),
-                A.RandomCrop(width=opt.imsize, height=opt.imsize),
-            ], keypoint_params=A.KeypointParams(format='yx'),
-                additional_targets={
-                    'valid': 'image',
-                    }
-            )
+            # self.cropper = A.Compose([
+            #     A.PadIfNeeded(min_height=opt.imsize, min_width=opt.imsize, border_mode=cv2.BORDER_CONSTANT),
+            #     A.RandomCrop(width=opt.imsize, height=opt.imsize),
+            # ], keypoint_params=A.KeypointParams(format='yx'),
+            #     additional_targets={
+            #         'valid': 'image',
+            #         }
+            # )
+            self.cropper = custom_cropper
+
         if mode == "test":
             # no crop
             self.cropper = A.Compose([],)
@@ -57,16 +86,16 @@ class FolderDataset(BaseDataset):
 
         cropped = self.cropper(image=frame["image"].transpose(1, 2, 0),
                                keypoints=frame["centers"],
-                               valid=frame["valid"])
+                               valid=frame["valid"], imsize=self.opt.imsize)
 
-        cropped = self.totensor(**cropped)
+        # cropped = self.totensor(**cropped)
 
         im = self.normalizer(cropped["image"].float())
 
         # Fill in sampledict with selected bands
         sampledict = {}
         sampledict["input"] = im
-        sampledict["valid"] = torch.from_numpy(cropped["valid"]).unsqueeze(0)
+        sampledict["valid"] = cropped["valid"].unsqueeze(0)
         sampledict["rawinput"] = cropped["image"].permute(2, 0, 1)[:3] / 255
         sampledict["centers"] = cropped["keypoints"] if len(cropped["keypoints"]) > 0 else [None]
         sampledict["resolution"] = self.ground_resolution
